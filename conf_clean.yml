@@ -1,0 +1,31 @@
+preprocess:
+  directory: /home/cyc/software/astroAI/dataset/simulations_dataset_v1/dl3_z20_irf/output_pairs
+  infotable: merged_simulator_data.dat
+  sample: 2000
+  time_start: 0
+  time_stop: 100
+  binning: 200
+  smoothing: 5
+  mode: clean
+  norm_value: 1
+  stretch: false
+  saveas: z20_clean_test_fake.pickle
+
+cnn:
+  directory: /home/cyc/software/astroAI/dataset/simulations_dataset_v1/dl3_z20_irf
+  dataset: z20_clean_test_fake.pickle
+  saveas: cleaner_z20_test_fake.pickle
+  mode: clean
+  reshape: true
+  split: 0.8
+  batch_sz: 200
+  epochs: 1
+  learning: 0.001
+  shuffle: false
+  layers:
+    conv_filter: 12
+    conv_kernel: 2
+    sampling_kernel: 2
+    number_convs: 4
+    dropout: 0.2
+    dense: 10000

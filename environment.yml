@@ -5,10 +5,10 @@ channels:
   - main
 
 dependencies:
-  - gammapy
-  - tensorflow
-  - tensorboard
-  - jupyter
-  - ipykernel
-  - pandas
-  - tqdm
+  - gammapy=2.1
+  - tensorflow=2.21.0
+  - tensorboard=2.20.0
+  - jupyter=1.1.1
+  - ipykernel=7.2.0
+  - pandas=3.0.2
+  - tqdm=4.67.3

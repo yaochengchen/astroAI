@@ -38,7 +38,8 @@ from gammapy.maps import Map, WcsGeom, MapAxis
 from astroai.tools.utils import convert_tt_to_mjd, get_irf_file
 
 # Ignore some warnings
-filterwarnings("ignore", category=np.VisibleDeprecationWarning)
+from warnings import filterwarnings
+filterwarnings("ignore")
 
 class GAnalysis():
     def __init__(self) -> None:
@@ -298,46 +299,54 @@ class GAnalysis():
         return stats, target_dict
 
     def read_events(self, dataset):
-        # Read the Event List
-        event_table = Table.read(self.eventfilename, hdu='EVENTS', format='fits')        
-        # Select Events according to the requested time range in JOB.xml
-        event_table = event_table[event_table['TIME']>self.conf['selection']['tmin']]
-        event_table = event_table[event_table['TIME']<self.conf['selection']['tmax']]        
-        # Select Events in Energy Range requested in JOB.xml
-        event_table = event_table[event_table['ENERGY']>self.conf['selection']['emin']]
-        event_table = event_table[event_table['ENERGY']<self.conf['selection']['emax']]
-        # Set pointing from Configuration, not from file
-        event_table.meta['RA_PNT' ]=self.conf['simulation']['point_ra']
-        event_table.meta['DEC_PNT']=self.conf['simulation']['point_dec']        
-        # Gammapy Event List
-        event_list = EventList(event_table)
+        from gammapy.data import EventList, GTI
+        from astropy.time import Time
+        import astropy.units as u
+        from gammapy.maps import Map
 
-        # Gammapy GTI
-        if self.conf['simulation']['timesys'] == 'tt':
-            time_ref = convert_tt_to_mjd(self.conf['simulation']['timeref'])
+        event_list = EventList.read(self.eventfilename, hdu="EVENTS")
+        event_table = event_list.table
+
+        # TIME 现在是 astropy.time.Time，需把 tmin/tmax 转成绝对时间再比较
+        time_min = event_list.time_ref + self.conf["selection"]["tmin"] * u.s
+        time_max = event_list.time_ref + self.conf["selection"]["tmax"] * u.s
+
+        # ENERGY 最好补单位，避免 quantity 比较问题
+        emin = self.conf["selection"]["emin"] * event_table["ENERGY"].unit
+        emax = self.conf["selection"]["emax"] * event_table["ENERGY"].unit
+
+        mask = (
+            (event_table["TIME"] > time_min) &
+            (event_table["TIME"] < time_max) &
+            (event_table["ENERGY"] > emin) &
+            (event_table["ENERGY"] < emax)
+        )
+
+        event_table = event_table[mask]
+        event_table.meta["RA_PNT"] = self.conf["simulation"]["point_ra"]
+        event_table.meta["DEC_PNT"] = self.conf["simulation"]["point_dec"]
+        event_list.table = event_table
+
+        if self.conf["simulation"]["timesys"] == "tt":
+            time_ref = convert_tt_to_mjd(self.conf["simulation"]["timeref"])
         else:
-            time_ref = self.conf['simulation']['timeref']
-        tmin = self.conf['selection']['tmin']*u.Unit(self.conf['simulation']['timeunit'])
-        tmax = self.conf['selection']['tmax']*u.Unit(self.conf['simulation']['timeunit'])
-        gti = GTI.create(tmin, tmax, reference_time=Time(time_ref, format='mjd'))
-        
-        # We need to rescale the background counts and exposure maps according to actual livetime
-        if self.conf['execute']['reducedirfdir'] is not None:
-            duration_rescale_factor = gti.time_sum / dataset.gti.time_sum
-            duration_rescale_factor = duration_rescale_factor.to("").value
+            time_ref = self.conf["simulation"]["timeref"]
 
+        tmin = self.conf["selection"]["tmin"] * u.Unit(self.conf["simulation"]["timeunit"])
+        tmax = self.conf["selection"]["tmax"] * u.Unit(self.conf["simulation"]["timeunit"])
+        gti = GTI.create(tmin, tmax, reference_time=Time(time_ref, format="mjd"))
+
+        if self.conf["execute"]["reducedirfdir"] is not None:
+            duration_rescale_factor = (gti.time_sum / dataset.gti.time_sum).to("").value
             dataset.background = dataset.background * duration_rescale_factor
-            dataset.exposure   = dataset.exposure   * duration_rescale_factor
-            dataset.exposure.meta['livetime']*= duration_rescale_factor
+            dataset.exposure = dataset.exposure * duration_rescale_factor
+            dataset.exposure.meta["livetime"] *= duration_rescale_factor
         else:
-            dataset.exposure.meta['livetime']=gti.time_sum
-                
-        # Assign data GTI to dataset
+            dataset.exposure.meta["livetime"] = gti.time_sum
+
         dataset.gti = gti
-        
-        # Fill a Data Cube with the selected events, assign the Counts cube to the Dataset.
-        # This performs spatial selection.
-        counts_cube = Map.from_geom(dataset.geoms['geom'])
+
+        counts_cube = Map.from_geom(dataset.geoms["geom"])
         counts_cube.fill_events(event_list)
         dataset.counts = counts_cube
         return dataset, event_list, gti

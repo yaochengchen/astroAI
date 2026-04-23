@@ -1,0 +1,55 @@
+samples: 2000
+start_seed: 0
+
+simulation:
+  directory: /home/cyc/software/astroAI/dataset/simulations_dataset_v1/dl3_z20_irf
+  datfile: dl3_z20_irf/merged_simulator_data.dat
+  id:
+  caldb: prod5
+  irf: random
+  caldb_path: /home/cyc/software/astroAI/astroAI/ambra-dipiano-astroAI-d457c89/astroai/caldb
+  point_ra:
+  point_dec:
+  skyframeref: icrs
+  skyframeunitref: deg
+  timesys: tt
+  timeref: 51544.5
+  timeunit: s
+
+selection:
+  emin: 0.03
+  emax: 5.0
+  energy_bins_per_decade: 10
+  roi_ringrad: 2.5
+  tmin: 0
+  tmax: 100
+
+execute:
+  pixel_size: 0.025
+  exclusion:
+  outdir: /home/cyc/software/astroAI/tmp_pairs_fake
+  reducedirfdir: /home/cyc/software/astroAI/tmp_pairs_fake/reduced_irfs
+  savefits: no
+  plotfullfov: no
+  plotirfs: no
+  plotts: no
+  makemap: no
+  mapreg: no
+  maproi: 2.0
+  computeph: no
+  blindsearch: no
+
+logging:
+  loglevel: info
+  logfile: astroai.log
+
+photometry:
+  onoff_radius: 0.2
+  onoff_method: reflection
+
+blindsearch:
+  sigmathresh: 5
+  maxoffset: 2.0
+  maxsrc: 1
+  plotzoom: no
+  corr_rad: 0.2
