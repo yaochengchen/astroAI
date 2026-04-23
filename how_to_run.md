@@ -51,6 +51,10 @@ python -m astroai.tools.preprocess_ds -f conf_clean.yml
 
 Once processing is complete, proceed to the inference stage:
 
+- Update model format to H5 for legacy compatibility
+cp cleaner_z20.keras cleaner_z20.h5
+cp regressor_z20.keras regressor_z20.h5
+
 - Open and execute:
 
 ```bash
